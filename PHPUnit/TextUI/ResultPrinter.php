@@ -546,6 +546,20 @@ class PHPUnit_TextUI_ResultPrinter extends PHPUnit_Util_Printer implements PHPUn
     }
 
     /**
+     * Risky test.
+     *
+     * @param  PHPUnit_Framework_Test $test
+     * @param  Exception              $e
+     * @param  float                  $time
+     * @since  Method available since Release 3.8.0
+     */
+    public function addRiskyTest(PHPUnit_Framework_Test $test, Exception $e, $time)
+    {
+        $this->writeProgressWithColor('fg-yellow, bold', 'R');
+        $this->lastTestFailed = TRUE;
+    }
+
+    /**
      * Skipped test.
      *
      * @param  PHPUnit_Framework_Test $test

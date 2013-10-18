@@ -64,6 +64,8 @@ abstract class PHPUnit_Framework_BaseTestListener implements PHPUnit_Framework_T
 
     public function addIncompleteTest(PHPUnit_Framework_Test $test, Exception $e, $time) {}
 
+    public function addRiskyTest(PHPUnit_Framework_Test $test, Exception $e, $time) {}
+
     public function addSkippedTest(PHPUnit_Framework_Test $test, Exception $e, $time) {}
 
     public function startTestSuite(PHPUnit_Framework_TestSuite $suite) {}
