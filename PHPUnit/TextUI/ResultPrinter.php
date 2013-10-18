@@ -186,6 +186,15 @@ class PHPUnit_TextUI_ResultPrinter extends PHPUnit_Util_Printer implements PHPUn
 
             $this->printDeprecated($result);
 
+            if ($printSeparator && $result->riskyCount() > 0) {
+                $this->write("\n--\n\n");
+            }
+
+            $printSeparator = $printSeparator ||
+                              $result->riskyCount() > 0;
+
+            $this->printRisky($result);
+
             if ($printSeparator && $result->notImplementedCount() > 0) {
                 $this->write("\n--\n\n");
             }
@@ -322,8 +331,17 @@ class PHPUnit_TextUI_ResultPrinter extends PHPUnit_Util_Printer implements PHPUn
     }
 
     /**
-     * @param PHPUnit_Framework_TestResult $result
-     * @since Method available since Release 3.0.0
+     * @param  PHPUnit_Framework_TestResult  $result
+     * @since  Method available since Release 3.8.0
+     */
+    protected function printRisky(PHPUnit_Framework_TestResult $result)
+    {
+        $this->printDefects($result->risky(), 'risky test');
+    }
+
+    /**
+     * @param  PHPUnit_Framework_TestResult  $result
+     * @since  Method available since Release 3.0.0
      */
     protected function printSkipped(PHPUnit_Framework_TestResult $result)
     {
