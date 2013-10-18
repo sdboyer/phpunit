@@ -755,7 +755,7 @@ class PHPUnit_Framework_TestResult implements Countable
 
         if ($this->beStrictAboutTestsThatDoNotTestAnything &&
             $test->getNumAssertions() == 0) {
-            $incomplete = TRUE;
+            $risky = TRUE;
         }
 
         if ($useXdebug) {
@@ -824,7 +824,7 @@ class PHPUnit_Framework_TestResult implements Countable
                  $test->getNumAssertions() == 0) {
             $this->addFailure(
               $test,
-              new PHPUnit_Framework_IncompleteTestError(
+              new PHPUnit_Framework_RiskyTestError(
                 'This test did not perform any assertions'
               ),
               $time

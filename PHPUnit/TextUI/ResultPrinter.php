@@ -404,8 +404,9 @@ class PHPUnit_TextUI_ResultPrinter extends PHPUnit_Util_Printer implements PHPUn
         }
 
         else if ($result->wasSuccessful() &&
-            $result->allCompletelyImplemented() &&
-            $result->noneSkipped()) {
+                 $result->allHarmless() &&
+                 $result->allCompletelyImplemented() &&
+                 $result->noneSkipped()) {
 
             $this->writeWithColor(
               'fg-black, bg-green',
@@ -421,13 +422,14 @@ class PHPUnit_TextUI_ResultPrinter extends PHPUnit_Util_Printer implements PHPUn
         }
 
         else if ((!$result->allCompletelyImplemented() ||
+                  !$result->allHarmless() ||
                   !$result->noneSkipped()) &&
                  $result->wasSuccessful()) {
             $this->writeWithColor(
               'fg-black, bg-yellow',
               sprintf(
-                "%sOK, but incomplete or skipped tests!\n" .
-                'Tests: %d, Assertions: %d%s%s.',
+                "%sOK, but incomplete, skipped, or risky tests!\n" .
+                'Tests: %d, Assertions: %d%s%s%s.',
 
                 $this->verbose ? "\n" : '',
                 count($result),
@@ -437,6 +439,9 @@ class PHPUnit_TextUI_ResultPrinter extends PHPUnit_Util_Printer implements PHPUn
                 ),
                 $this->getCountString(
                   $result->skippedCount(), 'Skipped'
+                ),
+                $this->getCountString(
+                  $result->riskyCount(), 'Risky'
                 )
               )
             );
