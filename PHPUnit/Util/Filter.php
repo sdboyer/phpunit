@@ -56,6 +56,19 @@
  */
 class PHPUnit_Util_Filter
 {
+    private static $filteredClassNamePrefixes = array(
+        'File_Iterator',
+        'PHP_CodeCoverage',
+        'PHP_Invoker',
+        'PHP_Timer',
+        'PHP_Token',
+        'PHPUnit_',
+        'SebastianBergmann\Diff',
+        'SebastianBergmann\Exporter',
+        'SebastianBergmann\Version',
+        'Text_Template'
+    );
+
     /**
      * Filters stack frames from PHPUnit classes.
      *
@@ -65,19 +78,6 @@ class PHPUnit_Util_Filter
      */
     public static function getFilteredStacktrace(Exception $e, $asString = TRUE)
     {
-        $prefix = FALSE;
-        $script = realpath($GLOBALS['_SERVER']['SCRIPT_NAME']);
-
-        if (defined('__PHPUNIT_PHAR__')) {
-            $prefix = 'phar://' . __PHPUNIT_PHAR__ . '/';
-        }
-
-        if (!defined('PHPUNIT_TESTSUITE')) {
-            $blacklist = PHPUnit_Util_GlobalState::phpunitFiles();
-        } else {
-            $blacklist = array();
-        }
-
         if ($asString === TRUE) {
             $filteredStacktrace = '';
         } else {
@@ -85,40 +85,38 @@ class PHPUnit_Util_Filter
         }
 
         if ($e instanceof PHPUnit_Framework_SyntheticError) {
-            $eTrace = $e->getSyntheticTrace();
-            $eFile  = $e->getSyntheticFile();
-            $eLine  = $e->getSyntheticLine();
-        } else {
-            if ($e->getPrevious()) {
-                $eTrace = $e->getPrevious()->getTrace();
-            } else {
-                $eTrace = $e->getTrace();
+            $trace = $e->getSyntheticTrace();
+        }
+
+        else if ($e->getPrevious()) {
+            $trace = $e->getPrevious()->getTrace();
+        }
+
+        else {
+            $trace = $e->getTrace();
+        }
+
+        if (!defined('PHPUNIT_TESTSUITE')) {
+            self::removeFramesBeforeTestMethod($trace);
+        }
+
+        self::fixSourceLocation($trace);
+
+        foreach ($trace as $frame) {
+            if (!isset($frame['file']) ||
+                (!defined('PHPUNIT_TESTSUITE') && self::isFiltered($frame['class']))) {
+                continue;
             }
-            $eFile  = $e->getFile();
-            $eLine  = $e->getLine();
-        }
 
-        if (!self::frameExists($eTrace, $eFile, $eLine)) {
-            array_unshift(
-              $eTrace, array('file' => $eFile, 'line' => $eLine)
-            );
-        }
+            if ($asString === TRUE) {
+                $filteredStacktrace .= sprintf(
+                    "%s:%s\n",
 
-        foreach ($eTrace as $frame) {
-            if (isset($frame['file']) && is_file($frame['file']) &&
-                !isset($blacklist[$frame['file']]) &&
-                ($prefix === FALSE || strpos($frame['file'], $prefix) !== 0) &&
-                $frame['file'] !== $script) {
-                if ($asString === TRUE) {
-                    $filteredStacktrace .= sprintf(
-                      "%s:%s\n",
-
-                      $frame['file'],
-                      isset($frame['line']) ? $frame['line'] : '?'
-                    );
-                } else {
-                    $filteredStacktrace[] = $frame;
-                }
+                    $frame['file'],
+                    isset($frame['line']) ? $frame['line'] : '?'
+                );
+            } else {
+                $filteredStacktrace[] = $frame;
             }
         }
 
@@ -126,17 +124,50 @@ class PHPUnit_Util_Filter
     }
 
     /**
-     * @param  array  $trace
-     * @param  string $file
-     * @param  int    $line
-     * @return boolean
-     * @since  Method available since Release 3.3.2
+     * @param array $trace
      */
-    public static function frameExists(array $trace, $file, $line)
+    private static function removeFramesBeforeTestMethod(array &$trace)
     {
-        foreach ($trace as $frame) {
-            if (isset($frame['file']) && $frame['file'] == $file &&
-                isset($frame['line']) && $frame['line'] == $line) {
+        $done = FALSE;
+
+        while (!$done && !empty($trace)) {
+            $frame = array_pop($trace);
+
+            if ($frame['class'] == 'ReflectionMethod' &&
+                $frame['function'] == 'invokeArgs' &&
+                substr($frame['file'], -12) == 'TestCase.php') {
+                $done = TRUE;
+            }
+        }
+    }
+
+    /**
+     * @param array $trace
+     */
+    private static function fixSourceLocation(array &$trace)
+    {
+        for ($frame = count($trace) - 1; $frame > 0; $frame--) {
+            if (isset($trace[$frame - 1]['file'])) {
+                $trace[$frame]['file'] = $trace[$frame - 1]['file'];
+            }
+
+            if (isset($trace[$frame - 1]['line'])) {
+                $trace[$frame]['line'] = $trace[$frame - 1]['line'];
+            }
+        }
+
+        unset($trace[0]);
+    }
+
+    /**
+     * @param  string $className
+     * @return boolean
+     * @since  Class available since Release 3.8.0
+     */
+    private static function isFiltered($className)
+    {
+        foreach (self::$filteredClassNamePrefixes as $prefix) {
+            if (strpos($className, $prefix) === 0) {
                 return TRUE;
             }
         }
