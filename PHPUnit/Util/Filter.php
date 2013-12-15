@@ -104,7 +104,7 @@ class PHPUnit_Util_Filter
 
         foreach ($trace as $frame) {
             if (!isset($frame['file']) ||
-                (!defined('PHPUNIT_TESTSUITE') && self::isFiltered($frame['class']))) {
+                (!defined('PHPUNIT_TESTSUITE') && isset($frame['class']) && self::isFiltered($frame['class']))) {
                 continue;
             }
 
